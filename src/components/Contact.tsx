@@ -5,6 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Mail, Phone, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
+
+// Contact form validation schema
+const contactSchema = z.object({
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
+  email: z.string().email("Email inválido").max(255, "Email muito longo"),
+  company: z.string().max(100, "Nome da empresa muito longo").optional(),
+  message: z.string().min(10, "Mensagem deve ter pelo menos 10 caracteres").max(1000, "Mensagem muito longa")
+});
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -13,20 +23,66 @@ const Contact = () => {
     company: "",
     message: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setErrors({});
     
-    // Simulate form submission
-    toast({
-      title: "Mensagem enviada!",
-      description: "Entraremos em contato em breve.",
-    });
+    try {
+      // Validate form data
+      const validatedData = contactSchema.parse(formData);
+      
+      // Submit to database
+      const { error } = await supabase
+        .from('contact_submissions')
+        .insert({
+          name: validatedData.name,
+          email: validatedData.email,
+          company: validatedData.company || null,
+          message: validatedData.message,
+          ip_address: null, // Could be populated via edge function if needed
+          user_agent: navigator.userAgent
+        });
 
-    // Reset form
-    setFormData({ name: "", email: "", company: "", message: "" });
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Mensagem enviada!",
+        description: "Entraremos em contato em breve.",
+      });
+
+      // Reset form
+      setFormData({ name: "", email: "", company: "", message: "" });
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        // Handle validation errors
+        const fieldErrors: Record<string, string> = {};
+        error.issues.forEach((err) => {
+          if (err.path[0]) {
+            fieldErrors[err.path[0] as string] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+      } else {
+        // Handle database errors
+        console.error('Error submitting contact form:', error);
+        toast({
+          title: "Erro ao enviar mensagem",
+          description: "Tente novamente em alguns instantes.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -70,6 +126,9 @@ const Contact = () => {
                       className="bg-background/50 border-border/50"
                       placeholder="Seu nome completo"
                     />
+                    {errors.name && (
+                      <p className="text-destructive text-sm mt-1">{errors.name}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">
@@ -84,6 +143,9 @@ const Contact = () => {
                       className="bg-background/50 border-border/50"
                       placeholder="seu@email.com"
                     />
+                    {errors.email && (
+                      <p className="text-destructive text-sm mt-1">{errors.email}</p>
+                    )}
                   </div>
                 </div>
                 
@@ -98,6 +160,9 @@ const Contact = () => {
                     className="bg-background/50 border-border/50"
                     placeholder="Nome da sua empresa"
                   />
+                  {errors.company && (
+                    <p className="text-destructive text-sm mt-1">{errors.company}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -113,10 +178,19 @@ const Contact = () => {
                     className="bg-background/50 border-border/50 resize-none"
                     placeholder="Conte-nos sobre seu projeto e como podemos ajudar..."
                   />
+                  {errors.message && (
+                    <p className="text-destructive text-sm mt-1">{errors.message}</p>
+                  )}
                 </div>
 
-                <Button type="submit" variant="cta" size="xl" className="w-full group">
-                  Enviar Mensagem
+                <Button 
+                  type="submit" 
+                  variant="cta" 
+                  size="xl" 
+                  className="w-full group" 
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Enviando..." : "Enviar Mensagem"}
                   <Send size={20} className="group-hover:translate-x-1 transition-transform" />
                 </Button>
               </form>
