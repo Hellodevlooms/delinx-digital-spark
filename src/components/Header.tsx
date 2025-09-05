@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import delinxLogo from "@/assets/delinx-logo.png";
+import delinxLogo from "@/assets/delinx-logo-new.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -14,9 +14,20 @@ const Header = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center">
-            <div className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              DELINX
-            </div>
+            <a 
+              href="#" 
+              className="flex items-center hover:scale-105 transition-transform duration-300"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <img 
+                src={delinxLogo} 
+                alt="Delinx Logo" 
+                className="h-10 w-auto object-contain"
+              />
+            </a>
           </div>
 
           {/* Desktop Navigation */}
