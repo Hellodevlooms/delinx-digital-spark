@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Menu, X } from "lucide-react";
 import delinxLogo from "@/assets/delinx-logo-new.png";
 
@@ -47,7 +48,8 @@ const Header = () => {
           </nav>
 
           {/* CTA Button Desktop */}
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center space-x-3">
+            <ThemeToggle />
             <Button variant="hero" size="lg">
               Fale com especialista
             </Button>
@@ -108,7 +110,8 @@ const Header = () => {
               Contato
             </a>
             
-            <div className="pt-4">
+            <div className="pt-4 space-y-4">
+              <ThemeToggle />
               <Button variant="hero" size="lg" className="w-full">
                 Fale com especialista
               </Button>
